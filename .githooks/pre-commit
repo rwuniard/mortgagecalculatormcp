@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Pre-commit hook to run unit tests before allowing commit
+# This ensures code quality and prevents breaking commits
+
+echo "🧪 Running pre-commit tests..."
+
+# Run Maven tests
+./mvnw test
+
+# Check if tests passed
+if [ $? -ne 0 ]; then
+    echo "❌ Tests failed! Commit aborted."
+    echo "Please fix failing tests before committing."
+    exit 1
+fi
+
+echo "✅ All tests passed! Proceeding with commit."
+exit 0

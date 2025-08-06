@@ -1,0 +1,42 @@
+name: PR Code Review with Claude
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-review-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          review_level: "thorough"
+          focus_areas: "security,performance,maintainability,testing"
+          java_version: "24"
+          build_command: "./mvnw compile"
+          test_command: "./mvnw test"

@@ -54,9 +54,12 @@ The application is structured as a Spring AI MCP server with the following archi
 
 1. **MCP Server Configuration** (`application.yaml`):
    - Server name: `mortgage-calculator-mcp-server`
-   - Type: SYNC (synchronous)
+   - Type: ASYNC (asynchronous for multiple client support)
    - Capabilities: tools, resources, prompts, completion
    - SSE endpoint: `/sse`
+   - Max connections: 10 concurrent clients
+   - Connection timeout: 30 seconds
+   - Tomcat max connections: 100
 
 2. **Tool Registration** (`MortgageCalculatorApplication`):
    - Uses `MethodToolCallbackProvider` to register service methods as MCP tools

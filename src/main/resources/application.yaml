@@ -6,7 +6,7 @@ spring:
         name: mortgage-calculator-mcp-server
         description: "Mortgage Calculator MCP Server"
         version: 1.0.0
-        type: SYNC
+        type: ASYNC
         instructions: "This server provides a mortgage calculator service. You can use it to calculate monthly payments based on loan amount, interest rate, and term."
         sse-endpoint: /sse
         capabilities:
@@ -14,4 +14,14 @@ spring:
           resource: true
           prompt: true
           completion: true
+        # Enable multiple client connections
+        max-connections: 10
+        connection-timeout: 30000
+        
+# Configure server for multiple connections
+server:
+  tomcat:
+    max-connections: 100
+    max-threads: 50
+  port: 8080
 

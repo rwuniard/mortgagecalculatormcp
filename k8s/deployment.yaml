@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mortgage-calculator-mcp
+  namespace: mcp-server
+  labels:
+    app: mortgage-calculator
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: mortgage-calculator
+  template:
+    metadata:
+      labels:
+        app: mortgage-calculator
+        version: v1
+      annotations:
+        kubernetes.io/managed-by: "mortgage-calculator-mcp"
+    spec:
+      containers:
+      - name: mcp-server
+        image: mortgage-calculator-mcp:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8081
+          name: management
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: JAVA_OPTS
+          value: "-Xmx512m -Xms256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: tmp-volume
+          mountPath: /tmp
+        # Kubernetes native health checks
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Startup probe for slower initialization
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 20
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "curl -X POST http://localhost:8081/actuator/shutdown || sleep 15"]
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: config-volume
+        configMap:
+          name: mcp-server-config
+      - name: tmp-volume
+        emptyDir: {}
+      serviceAccountName: mortgage-calculator-mcp-sa
+      securityContext:
+        fsGroup: 1001
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always

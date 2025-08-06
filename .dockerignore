@@ -1,0 +1,56 @@
+# Ignore build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore Git
+.git/
+.gitignore
+
+# Ignore Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Ignore documentation and scripts
+README.md
+CLAUDE.md
+HELP.md
+*.md
+setup-hooks.sh
+
+# Ignore test reports and coverage
+**/jacoco.xml
+**/surefire-reports/
+**/test-results/
+
+# Ignore temporary files
+*.tmp
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Ignore CI/CD files
+.github/
+.githooks/
+
+# Ignore Maven local repository cache
+.m2/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties

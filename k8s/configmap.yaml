@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-server-config
+  namespace: mcp-server
+  labels:
+    app: mortgage-calculator
+data:
+  application.yaml: |
+    # Stateless MCP Server Configuration for Kubernetes
+    spring:
+      ai:
+        mcp:
+          server:
+            name: mortgage-calculator-mcp-server
+            description: "Stateless Mortgage Calculator MCP Server for Kubernetes"
+            version: 1.0.0
+            type: ASYNC
+            instructions: "This stateless server provides mortgage calculator services. Each request is independent and can be handled by any pod instance."
+            sse-endpoint: /sse
+            capabilities:
+              tool: true
+              resource: true
+              prompt: true
+              completion: true
+            # Stateless configuration - optimized for K8s
+            max-connections: 100
+            connection-timeout: 30000
+            stateless: true
+            session-persistence: false
+            
+    # Server configuration optimized for containerized environment
+    server:
+      tomcat:
+        max-connections: 200
+        max-threads: 100
+        connection-timeout: 20000
+      port: 8080
+      shutdown: graceful
+      
+    # Kubernetes health and observability
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics
+          base-path: /actuator
+      endpoint:
+        health:
+          show-details: always
+          probes:
+            enabled: true
+        shutdown:
+          enabled: true
+      server:
+        port: 8081
+            
+    # Logging optimized for container environments
+    logging:
+      level:
+        root: INFO
+        org.springframework.ai: INFO
+        org.rw.mortgagecalculator: INFO
+        io.micrometer: WARN
+      pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"

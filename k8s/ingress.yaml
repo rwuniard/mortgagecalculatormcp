@@ -1,0 +1,69 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mortgage-calculator-mcp-ingress
+  namespace: mcp-server
+  labels:
+    app: mortgage-calculator
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Load balancing for stateless MCP connections
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    # WebSocket support for MCP protocol
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+      }
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - mcp.yourdomain.com
+    secretName: mcp-tls-secret
+  rules:
+  - host: mcp.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mortgage-calculator-mcp-service
+            port:
+              number: 8080
+---
+# Internal ingress for management endpoints
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mortgage-calculator-mcp-management
+  namespace: mcp-server
+  labels:
+    app: mortgage-calculator
+    type: management
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Restrict access to management endpoints
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: mcp-mgmt.yourdomain.com
+    http:
+      paths:
+      - path: /actuator
+        pathType: Prefix
+        backend:
+          service:
+            name: mortgage-calculator-mcp-service
+            port:
+              number: 8081

@@ -71,6 +71,8 @@ The application is structured as a Spring AI MCP server with the following archi
 ```
 org.rw.mortgagecalculator/
 ├── MortgageCalculatorApplication.java  # Main Spring Boot app + MCP config
+├── model/
+│   └── PaymentBreakdown.java          # Payment breakdown data model
 └── services/
     └── MortgagePaymentService.java     # Core mortgage calculation logic
 ```
@@ -86,8 +88,15 @@ The service implements the standard amortization formula with proper handling of
 ### MCP Tool Definition
 Tools are defined using Spring AI annotations:
 - `@Tool(name, description)` - Exposes method as MCP tool
-- Tool name: `calculateMonthlyPayment`
-- Parameters: principal (double), annualInterestRate (double), loanTermYears (int)
+
+**Available Tools:**
+1. **calculateMonthlyPayment** - Calculates monthly mortgage payment
+   - Parameters: principal (double), annualInterestRate (double), loanTermYears (int)
+   - Returns: double (monthly payment amount)
+
+2. **getPaymentSchedule** - Returns complete payment breakdown for entire loan term
+   - Parameters: principal (double), annualInterestRate (double), loanTermYears (int)
+   - Returns: List<PaymentBreakdown> (monthly breakdown of principal, interest, and remaining balance)
 
 ### Spring AI Version
 - Spring AI: 1.0.0
@@ -97,7 +106,48 @@ Tools are defined using Spring AI annotations:
 ## Testing Strategy
 
 The codebase uses JUnit 5 for testing with:
-- Standard calculation test case (5% interest, 30-year loan)
-- Edge case testing (zero interest rate)
-- Delta-based assertions for floating-point comparisons (0.0001 tolerance)
-- JaCoCo integration for code coverage reporting
+- **Basic Calculations**: Standard mortgage payment calculations (5% interest, 30-year loan)
+- **Edge Cases**: Zero interest rate scenarios, short-term loans
+- **Payment Schedule Testing**: Complete amortization schedule validation
+  - Verifies correct number of payments
+  - Validates progressive decrease in interest payments
+  - Confirms progressive increase in principal payments
+  - Ensures final balance reaches zero
+  - Tests total principal payments equal loan amount
+- **Delta-based Assertions**: Floating-point comparisons with appropriate tolerance (0.0001-1.0)
+- **JaCoCo Integration**: Code coverage reporting
+
+## CI/CD and Quality Gates
+
+### GitHub Actions Workflows
+The project includes automated CI/CD workflows:
+
+1. **PR Code Review** (`.github/workflows/pr-review.yml`):
+   - Automatically reviews pull requests using Claude
+   - Focuses on security, performance, maintainability, and testing
+   - Runs on PR open, synchronize, and reopen events
+
+2. **Continuous Integration** (`.github/workflows/ci.yml`):
+   - Runs on pushes to main/develop branches and all PRs
+   - Executes full test suite with coverage reporting
+   - Uploads coverage reports to Codecov
+   - Compiles and packages the application
+   - Blocks merges if tests fail
+
+### Pre-commit Hooks
+Local quality gates to prevent broken commits:
+
+```bash
+# Set up git hooks (run once after cloning)
+./setup-hooks.sh
+```
+
+The pre-commit hook (`.githooks/pre-commit`):
+- Automatically runs `./mvnw test` before each commit
+- Prevents commits if any tests fail
+- Ensures code quality is maintained locally
+
+### Required Setup
+1. Add `ANTHROPIC_API_KEY` to GitHub repository secrets for Claude code review
+2. (Optional) Add `CODECOV_TOKEN` for coverage reporting
+3. Run `./setup-hooks.sh` to enable pre-commit testing

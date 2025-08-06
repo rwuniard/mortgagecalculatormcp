@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mortgage-calculator-mcp-sa
+  namespace: mcp-server
+  labels:
+    app: mortgage-calculator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mortgage-calculator-mcp-role
+  namespace: mcp-server
+  labels:
+    app: mortgage-calculator
+rules:
+# Minimal permissions for application functionality
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mortgage-calculator-mcp-rolebinding
+  namespace: mcp-server
+  labels:
+    app: mortgage-calculator
+subjects:
+- kind: ServiceAccount
+  name: mortgage-calculator-mcp-sa
+  namespace: mcp-server
+roleRef:
+  kind: Role
+  name: mortgage-calculator-mcp-role
+  apiGroup: rbac.authorization.k8s.io

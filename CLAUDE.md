@@ -119,3 +119,88 @@ The codebase uses JUnit 5 for testing with:
   - Tests that total principal payments equal original loan amount
 - **Delta-based Assertions**: Floating-point comparisons with appropriate tolerance (0.0001-1.0)
 - **JaCoCo Integration**: Code coverage reporting
+
+## Docker and Kubernetes Deployment
+
+### Building Docker Image
+The project includes a multi-stage Dockerfile optimized for production deployment:
+
+```bash
+# Build Docker image
+docker build -t mortgage-calculator-mcp:latest .
+
+# Run container locally
+docker run -p 8080:8080 -p 8081:8081 mortgage-calculator-mcp:latest
+```
+
+**Docker Features:**
+- Multi-stage build with Eclipse Temurin Java 24
+- Security-focused: non-root user (ID 1001), minimal attack surface
+- Health checks and graceful shutdown support
+- Optimized layer caching for faster builds
+
+### Kubernetes Deployment
+
+The application is designed for stateless deployment in Kubernetes with support for multiple concurrent MCP clients.
+
+#### Quick Deployment
+```bash
+cd k8s
+# Build and deploy everything
+./deploy.sh full-deploy
+
+# Check deployment status
+./deploy.sh status
+
+# Clean up
+./deploy.sh delete
+```
+
+#### Kubernetes Components
+
+**Namespace & RBAC:**
+- Dedicated `mcp-server` namespace with resource quotas
+- ServiceAccount with minimal RBAC permissions
+- Secure pod security context (non-root, read-only filesystem where possible)
+
+**Application Deployment:**
+- 3-replica deployment with rolling update strategy
+- Resource requests: 256Mi memory, 250m CPU
+- Resource limits: 1Gi memory, 500m CPU
+- Comprehensive health checks (startup, liveness, readiness)
+- Graceful shutdown with 30-second termination period
+
+**Scaling & Performance:**
+- Horizontal Pod Autoscaler (HPA): 2-10 replicas based on CPU (70%) and memory (80%)
+- Stateless architecture optimized for Kubernetes pod lifecycle
+- ASYNC MCP server mode for concurrent client connections
+
+**Networking:**
+- ClusterIP service for internal access (ports 8080, 8081)
+- Optional ingress with NGINX controller support
+- WebSocket-compatible configuration for MCP protocol
+- Separate management endpoints with restricted access
+
+**Configuration:**
+- ConfigMap-based configuration for Kubernetes profile
+- Environment-specific settings via SPRING_PROFILES_ACTIVE=kubernetes
+- JVM tuning for containerized environments
+
+#### Local Kubernetes Testing
+For local development with minikube or kind:
+
+```bash
+# Port-forward to access the service
+kubectl port-forward -n mcp-server svc/mortgage-calculator-mcp-service 8080:8080
+
+# Access health checks
+kubectl port-forward -n mcp-server svc/mortgage-calculator-mcp-service 8081:8081
+curl http://localhost:8081/actuator/health
+```
+
+#### Production Considerations
+- **TLS Configuration**: Update ingress.yaml with proper domain and certificates
+- **Resource Limits**: Adjust based on expected load and cluster capacity
+- **Monitoring**: Prometheus metrics available at `/actuator/prometheus` (port 8081)
+- **Log Management**: JSON logging enabled for Kubernetes log aggregation
+- **Security**: RBAC configured with minimal required permissions

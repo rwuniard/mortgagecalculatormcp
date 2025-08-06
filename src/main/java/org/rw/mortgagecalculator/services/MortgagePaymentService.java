@@ -1,8 +1,11 @@
 package org.rw.mortgagecalculator.services;
 
-
+import org.rw.mortgagecalculator.model.PaymentBreakdown;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class MortgagePaymentService {
@@ -26,5 +29,49 @@ public class MortgagePaymentService {
         double numerator = principal * monthlyInterestRate * powerTerm;
         double denominator = powerTerm - 1;
         return numerator / denominator;
+    }
+
+    @Tool(name = "getPaymentSchedule", description = "Returns a complete payment schedule showing monthly breakdown of principal and interest payments for the entire loan term.")
+    public List<PaymentBreakdown> getPaymentSchedule(double principal, double annualInterestRate, int loanTermYears) {
+        List<PaymentBreakdown> paymentSchedule = new ArrayList<>();
+        
+        double monthlyInterestRate = annualInterestRate / 100 / 12;
+        int numberOfPayments = loanTermYears * 12;
+        double monthlyPayment = calculateMonthlyPayment(principal, annualInterestRate, loanTermYears);
+        
+        double remainingBalance = principal;
+        
+        for (int paymentNumber = 1; paymentNumber <= numberOfPayments; paymentNumber++) {
+            // Calculate interest payment for this month
+            double interestPayment = remainingBalance * monthlyInterestRate;
+            
+            // Calculate principal payment (total payment - interest)
+            double principalPayment = monthlyPayment - interestPayment;
+            
+            // Handle final payment adjustment (remaining balance might be less than calculated principal)
+            if (paymentNumber == numberOfPayments || principalPayment > remainingBalance) {
+                principalPayment = remainingBalance;
+            }
+            
+            // Update remaining balance
+            remainingBalance -= principalPayment;
+            
+            // Create payment breakdown entry
+            PaymentBreakdown breakdown = new PaymentBreakdown(
+                paymentNumber, 
+                principalPayment, 
+                interestPayment, 
+                Math.max(0, remainingBalance) // Ensure no negative balance due to rounding
+            );
+            
+            paymentSchedule.add(breakdown);
+            
+            // Break if loan is fully paid
+            if (remainingBalance <= 0) {
+                break;
+            }
+        }
+        
+        return paymentSchedule;
     }
 }

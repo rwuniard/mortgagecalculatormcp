@@ -10,7 +10,7 @@ import java.util.List;
 @Service
 public class MortgagePaymentService {
 
-    @Tool(name = "calculateMonthlyPayment", description = "Calculates the monthly mortgage payment based on principal, annual interest rate, and loan term in years.")
+    @Tool(name = "calculateMonthlyPayment", description = "Calculates the monthly mortgage payment based on principal, annual interest rate (For 5% you provide 5 and not 0.05), and loan term in years.")
     /*
          M = P [ r(1 + r)^n ] / [ (1 + r)^n - 1]
     Where:
@@ -31,7 +31,7 @@ public class MortgagePaymentService {
         return numerator / denominator;
     }
 
-    @Tool(name = "getPaymentSchedule", description = "Returns a complete payment schedule showing monthly breakdown of principal and interest payments for the entire loan term.")
+    @Tool(name = "getPaymentSchedule", description = "Returns a complete payment schedule showing monthly breakdown of principal and interest payments for the entire loan term. For the annual interest rate, you provide the percentage (e.g., for 5% use 5, not 0.05).")
     public List<PaymentBreakdown> getPaymentSchedule(double principal, double annualInterestRate, int loanTermYears) {
         List<PaymentBreakdown> paymentSchedule = new ArrayList<>();
         
